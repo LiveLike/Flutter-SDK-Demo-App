@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:livelike_flutter_sdk/livelike_flutter_sdk.dart';
+import 'package:livelike_sdk_example/timeline_view_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -12,7 +13,7 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return GetMaterialApp(
         title: 'LiveLike SDK Demo',
         theme: ThemeData(
           // This is the theme of your application.
@@ -26,9 +27,14 @@ class MyApp extends StatelessWidget {
           // is not restarted.
           primarySwatch: Colors.blue,
         ),
+        getPages: [
+          GetPage(name: "widgets", page: () => TimeLineScreen()),
+        ],
         home: SizedBox(child: MyHomePage(title: 'LiveLike SDK Demo')));
   }
 }
+
+
 
 class MyHomePage extends StatefulWidget {
   MyHomePage({Key? key, required this.title}) : super(key: key);
@@ -65,20 +71,30 @@ class _MyHomePageState extends State<MyHomePage> {
         // the App.build method, and use it to set our appbar title.
         title: Text(widget.title),
       ),
-      body: Center(
+      body: Column(
         // Center is a layout widget. It takes a single child and positions it
         // in the middle of the parent.
-        child: Obx(() => homeController.chatLoaded.value
-            ? ChatView(
-                key: Key("${homeController.chatSession.value!.chatRoomId}"),
-                session: homeController.chatSession.value!,
-              ): SizedBox.shrink()),
+        children: [
+          ElevatedButton(onPressed:() {
+
+          }, child: ListTile(
+            title: Text("Wigets"), onTap: (){
+            Get.toNamed("widgets",
+                arguments: "");
+          },)),
+          Obx(() => homeController.chatLoaded.value
+              ? ChatView(
+                  key: Key("${homeController.chatSession.value!.chatRoomId}"),
+                  session: homeController.chatSession.value!,
+                )
+              : SizedBox.shrink())
+        ],
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }
 
-class HomeController extends GetxController {
+class HomeController extends GetxController with WidgetsBindingObserver {
   final accessToken = Rx<String?>(null);
   final sdkInitCompleted = false.obs;
   final Rx<ChatSession?> chatSession = Rx(null);
@@ -96,7 +112,6 @@ class HomeController extends GetxController {
         EngagementSDK.accessToken("8PqSNDgIVHnXuJuGte1HdvOjOqhCFE1ZCR3qhqaS",
             sharedPref.getString("accessToken"), (event) async {
           print("Access Token: $event");
-          showErrorMessage("Please Enter Valid ChatRoom ID");
           await sharedPref.setString("accessToken", event);
           accessToken.value = event;
           sdkInitCompleted.value = true;
@@ -104,12 +119,12 @@ class HomeController extends GetxController {
         permanent: true);
 
     sdkInitCompleted.addListener(GetStream(onListen: () {
-      if (sdkInitCompleted.value == true ) {
+      if (sdkInitCompleted.value == true) {
         createChatSession();
         return;
       }
       accessToken.value = sharedPref.getString("accessToken");
-      if(accessToken.value?.isNotEmpty == true) {
+      if (accessToken.value?.isNotEmpty == true) {
         createChatSession();
       }
     }));
@@ -118,6 +133,24 @@ class HomeController extends GetxController {
       print("Error: $error");
       sdkInitCompleted.value = false;
     });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    print("LifeCycle : $state");
+    switch (state) {
+      case AppLifecycleState.resumed:
+        chatSession.value?.resume();
+        break;
+      case AppLifecycleState.paused:
+        chatSession.value?.pause();
+        break;
+      case AppLifecycleState.inactive:
+        break;
+      case AppLifecycleState.detached:
+        break;
+    }
   }
 
   void createChatSession() async {
