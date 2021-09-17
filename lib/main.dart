@@ -5,6 +5,8 @@ import 'package:livelike_flutter_sdk/livelike_flutter_sdk.dart';
 import 'package:livelike_sdk_example/timeline_view_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'chat_screen.dart';
+
 void main() {
   runApp(MyApp());
 }
@@ -65,31 +67,27 @@ class _MyHomePageState extends State<MyHomePage> {
     // The Flutter framework has been optimized to make rerunning build methods
     // fast, so that you can just rebuild anything that needs updating rather
     // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text('Flutter Tabs Demo'),
+          bottom: TabBar(
+            tabs: [
+               Tab(icon: Icon(Icons.chat), text: "Chat"),
+               Tab(icon: Icon(Icons.timeline), text: "Timeline")
+            ],
+          ),
+        ),
+        body: TabBarView(
+          children: [
+            Obx(
+            () => homeController.chatLoaded.value ? ChatScreen(homeController.chatSession) : SizedBox.shrink()),
+            Obx(
+              () => homeController.chatLoaded.value ? TimeLineScreen() : SizedBox.shrink()),
+          ],
+        ),
       ),
-      body: Column(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        children: [
-          ElevatedButton(onPressed:() {
-
-          }, child: ListTile(
-            title: Text("Wigets"), onTap: (){
-            Get.toNamed("widgets",
-                arguments: "");
-          },)),
-          Obx(() => homeController.chatLoaded.value
-              ? ChatView(
-                  key: Key("${homeController.chatSession.value!.chatRoomId}"),
-                  session: homeController.chatSession.value!,
-                )
-              : SizedBox.shrink())
-        ],
-      ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }
